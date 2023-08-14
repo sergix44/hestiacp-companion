@@ -1,0 +1,51 @@
+{
+    "name": "sergix44/hestiacp-companion",
+    "description": "HestiaCP Companion is a command-line tool for HestiaCP",
+    "keywords": ["php", "laravel", "cli", "console", "command", "command-line", "artisan", "zero", "laravel-zero", "laravel-zero-framework", "framework", "microframework", "micro-framework", "console-application", "console-commands", "console-app", "console-script"],
+    "homepage": "https://github.com/sergix44/hestiacp-companion",
+    "type": "project",
+    "license": "GPL-2.0-only",
+    "support": {
+        "issues": "https://github.com/laravel-zero/laravel-zero/issues",
+        "source": "https://github.com/laravel-zero/laravel-zero"
+    },
+    "authors": [
+        {
+            "name": "Sergio Brighenti",
+            "email": "sergio@brighenti.me"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "laravel-zero/framework": "^10.0.2",
+        "nunomaduro/termwind": "^1.15.1"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.8",
+        "mockery/mockery": "^1.5.1",
+        "pestphp/pest": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "bin": ["hcpc"]
+}
