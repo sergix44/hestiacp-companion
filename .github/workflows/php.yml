@@ -44,6 +44,7 @@ jobs:
       - name: Run test suite
         run: composer run-script test
   build-artifact:
+    needs: tests
     runs-on: ubuntu-latest
     name: Build Artifact
     steps:
@@ -75,7 +76,7 @@ jobs:
         run: composer install --no-progress --no-ansi
 
       - name: Build artifact
-        run: php artisan app:build -n --build-version=${{ steps.tag.outputs.tag }}
+        run: php hcpc app:build -n --build-version=${{ steps.tag.outputs.tag }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
