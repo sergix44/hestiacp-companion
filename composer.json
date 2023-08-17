@@ -48,5 +48,8 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "bin": ["hcpc"]
+    "bin": ["hcpc"],
+    "scripts": {
+        "test": "@php vendor/bin/pest --fail-on-warning"
+    }
 }
