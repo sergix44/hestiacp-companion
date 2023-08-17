@@ -8,9 +8,9 @@ user = %user%
 group = %user%
 
 pm = ondemand
-pm.max_children = {{ $ondemandMaxChildren }}
-pm.max_requests = {{ $ondemandMaxRequests }}
-pm.process_idle_timeout = {{ $ondemandProcessIdleTimeout  }}s
+pm.max_children = {{ $maxChildren }}
+pm.max_requests = {{ $maxRequests }}
+pm.process_idle_timeout = {{ $processIdleTimeout  }}s
 pm.status_path = /status
 
 php_admin_value[upload_tmp_dir] = /home/%user%/tmp

@@ -55,10 +55,10 @@ class PhpTemplateCommand extends Command
 
     private function makeTemplate($name, $phpVersion, $maxChildren, $processIdleTimeout, $maxRequests)
     {
-        $data = view('php-fpm', [
-            'ondemandMaxChildren' => $maxChildren,
-            'ondemandProcessIdleTimeout' => $processIdleTimeout,
-            'ondemandMaxRequests' => $maxRequests,
+        $data = view('php.ondemand', [
+            'maxChildren' => $maxChildren,
+            'processIdleTimeout' => $processIdleTimeout,
+            'maxRequests' => $maxRequests,
         ]);
 
         $phpSuffix = str_replace('.', '_', $phpVersion);
