@@ -17,7 +17,7 @@ server {
         proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header        X-Forwarded-Proto $scheme;
         proxy_redirect http:// https://;
-        proxy_pass              http://%proxy_extensions%;
+        proxy_pass              %proxy_extensions%;
     }
 
     location /error/ {
