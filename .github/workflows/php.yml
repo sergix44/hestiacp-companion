@@ -91,7 +91,7 @@ jobs:
           path: builds/hcpc
 
       - name: Upload artifact to release
-        uses: nanoufo/action-upload-artifacts-and-release-assets@1.8
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v1.8
         with:
           path: builds/hcpc
           upload-release-files: true
