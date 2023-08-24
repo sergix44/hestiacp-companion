@@ -50,9 +50,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: tenhaus/get-release-or-tag@v2
-        id: tag
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -75,14 +72,14 @@ jobs:
         if: steps.composer-cache.outputs.cache-hit != 'true'
         run: composer install --no-progress --no-ansi
 
-      - name: Build artifact
-        run: php hcpc app:build -n --build-version=${{ steps.tag.outputs.tag }}
-
       - name: Draft Release
         id: draft_release
         uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build artifact
+        run: php hcpc app:build -n --build-version=${{ steps.draft_release.outputs.tag_name }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
