@@ -28,22 +28,21 @@ class ReverseProxyCommand extends Command
      */
     public function handle()
     {
-        $data = view('nginx.reverse-proxy-tpl');
-        $path = config('hestia.templates.nginx-proxy') . '/reverse_proxy.tpl';
-        file_put_contents($path, $data);
+        foreach (
+            [
+                'http_reverse_proxy' => 'http',
+                'https_reverse_proxy' => 'https',
+                'unix_reverse_proxy' => 'unix'
+            ] as $name => $protocol
+        ) {
+            foreach (['tpl', 'stpl'] as $type) {
+                $success = $this->makeTemplate($name, $type, $protocol);
 
-        if (!file_exists($path)) {
-            $this->error("Reverse proxy .tpl could not be created.");
-            return 1;
-        }
-
-        $data = view('nginx.reverse-proxy-stpl');
-        $path = config('hestia.templates.nginx-proxy') . '/reverse_proxy.stpl';
-        file_put_contents($path, $data);
-
-        if (!file_exists($path)) {
-            $this->error("Reverse proxy .stpl could not be created.");
-            return 1;
+                if (!$success) {
+                    $this->error("Reverse proxy $name.$type could not be created.");
+                    return 1;
+                }
+            }
         }
 
         $this->info("Reverse proxy templates created.");
@@ -55,5 +54,14 @@ class ReverseProxyCommand extends Command
         );
 
         return 0;
+    }
+
+    private function makeTemplate(string $name, string $type, string $protocol): bool
+    {
+        $data = view('nginx.reverse-proxy-' . $type, [
+            'proxyProtocol' => $protocol
+        ]);
+        $path = config('hestia.templates.nginx-proxy') . "/$name.$type";
+        return file_put_contents($path, $data) !== false;
     }
 }
