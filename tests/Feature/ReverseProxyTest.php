@@ -6,9 +6,17 @@ it('creates the tpl files', function () {
 
     $this->artisan('reverse-proxy')->assertExitCode(0);
 
-    $this->assertFileExists($testPath . '/reverse_proxy.tpl');
-    $this->assertFileExists($testPath . '/reverse_proxy.stpl');
+    $this->assertFileExists($testPath . '/http_reverse_proxy.tpl');
+    $this->assertFileExists($testPath . '/http_reverse_proxy.stpl');
+    $this->assertFileExists($testPath . '/https_reverse_proxy.tpl');
+    $this->assertFileExists($testPath . '/https_reverse_proxy.stpl');
+    $this->assertFileExists($testPath . '/unix_reverse_proxy.tpl');
+    $this->assertFileExists($testPath . '/unix_reverse_proxy.stpl');
 
-    unlink($testPath . '/reverse_proxy.tpl');
-    unlink($testPath . '/reverse_proxy.stpl');
+    unlink($testPath . '/http_reverse_proxy.tpl');
+    unlink($testPath . '/http_reverse_proxy.stpl');
+    unlink($testPath . '/https_reverse_proxy.tpl');
+    unlink($testPath . '/https_reverse_proxy.stpl');
+    unlink($testPath . '/unix_reverse_proxy.tpl');
+    unlink($testPath . '/unix_reverse_proxy.stpl');
 });
