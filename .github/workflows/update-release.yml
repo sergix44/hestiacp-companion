@@ -1,0 +1,57 @@
+name: Update Release
+
+on:
+  push:
+    branches: [ master ]
+
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    name: Draft release and build artifact
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v2
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-8.2-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.2
+
+      - name: Install dependencies
+        if: steps.composer-cache.outputs.cache-hit != 'true'
+        run: composer install --no-progress --no-ansi
+
+      - name: Draft Release
+        id: draft_release
+        uses: release-drafter/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build artifact
+        run: php hcpc app:build -n --build-version=${{ steps.draft_release.outputs.tag_name }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: hcpc
+          path: builds/hcpc
+
+      - name: Upload artifact to release
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v1.8
+        with:
+          path: builds/hcpc
+          upload-release-files: true
+          release-upload-url: ${{ steps.draft_release.outputs.upload_url }}

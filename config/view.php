@@ -6,6 +6,6 @@ return [
     ],
 
     'compiled' => \Phar::running()
-        ? sys_get_temp_dir()
+        ? $_SERVER['HOME'] . '/.hcpc/cache/views'
         : env('VIEW_COMPILED_PATH', realpath(storage_path('framework/views'))),
 ];

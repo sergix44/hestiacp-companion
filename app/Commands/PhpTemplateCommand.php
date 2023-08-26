@@ -42,14 +42,15 @@ class PhpTemplateCommand extends Command
             $maxRequests = $this->ask('Max requests per child:', $maxRequests);
         }
 
-        $success = $this->makeTemplate($name, $phpVersion, $maxChildren, $processIdleTimeout, $maxRequests);
+        $success = $this->task("Creating PHP-FPM template $name", function () use ($name, $phpVersion, $maxChildren, $processIdleTimeout, $maxRequests) {
+            return $this->makeTemplate($name, $phpVersion, $maxChildren, $processIdleTimeout, $maxRequests);
+        });
 
         if (!$success) {
             $this->error("PHP-FPM template $name could not be created.");
             return 1;
         }
 
-        $this->info("PHP-FPM template $name created.");
         return 0;
     }
 

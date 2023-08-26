@@ -36,16 +36,16 @@ class ReverseProxyCommand extends Command
             ] as $name => $protocol
         ) {
             foreach (['tpl', 'stpl'] as $type) {
-                $success = $this->makeTemplate($name, $type, $protocol);
+                $success = $this->task("Creating reverse proxy template $name.$type", function () use ($name, $type, $protocol) {
+                    return $this->makeTemplate($name, $type, $protocol);
+                });
 
                 if (!$success) {
-                    $this->error("Reverse proxy $name.$type could not be created.");
+                    $this->error("Reverse proxy template $name.$type could not be created.");
                     return 1;
                 }
             }
         }
-
-        $this->info("Reverse proxy templates created.");
 
         $this->comment(
             "To create a reverse proxy site, select the 'reverse_proxy' template in the Hestia control panel," .

@@ -72,26 +72,13 @@ jobs:
         if: steps.composer-cache.outputs.cache-hit != 'true'
         run: composer install --no-progress --no-ansi
 
-      - name: Draft Release
-        id: draft_release
-        uses: release-drafter/release-drafter@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build artifact
-        run: php hcpc app:build -n --build-version=${{ steps.draft_release.outputs.tag_name }}
+        run: php hcpc app:build -n --build-version=${{ github.ref }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: hcpc
           path: builds/hcpc
-
-      - name: Upload artifact to release
-        uses: nanoufo/action-upload-artifacts-and-release-assets@v1.8
-        with:
-          path: builds/hcpc
-          upload-release-files: true
-          release-upload-url: ${{ steps.draft_release.outputs.upload_url }}
 
 
