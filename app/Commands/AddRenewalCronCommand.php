@@ -11,7 +11,7 @@ class AddRenewalCronCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'hcp:add-cron';
+    protected $signature = 'hestia:add-cron';
 
     /**
      * The description of the command.
@@ -34,10 +34,12 @@ class AddRenewalCronCommand extends Command
             return 1;
         }
 
-        $cd = getcwd();
-        $command = "cd $cd; ". PHP_BINARY . " $path schedule:run >> /dev/null 2>&1";
+        $cd = dirname(str_replace('phar://', '', $path));
+        $exec = basename($path);
+        $command = "cd $cd && ". PHP_BINARY . " $exec schedule:run >> /dev/null 2>&1";
 
-        shell_exec('v-add-cron-job admin * * * * * "' . $command . '"');
-        return 0;
+        $fullCommand = 'v-add-cron-job admin "*" "*" "*" "*" "*" "' . $command . '"';
+        passthru($fullCommand, $return);
+        return $return;
     }
 }
