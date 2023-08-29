@@ -11,7 +11,6 @@ use AcmePhp\Ssl\KeyPair;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\PrivateKey;
 use AcmePhp\Ssl\Signer\DataSigner;
-use App\Commands\AddWildcardDomain;
 use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
