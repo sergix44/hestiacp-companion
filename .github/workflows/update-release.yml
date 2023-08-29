@@ -43,6 +43,15 @@ jobs:
       - name: Build artifact
         run: php hcpc app:build -n --build-version=${{ steps.draft_release.outputs.tag_name }}
 
+      - name: Remove old artifact
+        uses: flcdrg/remove-release-asset-action@v1
+        id: remove-asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ steps.draft_release.outputs.id }}
+          asset_name: hcpc
+
       - name: Upload artifact to release
         uses: nanoufo/action-upload-artifacts-and-release-assets@v1.8
         with:
