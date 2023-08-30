@@ -42,7 +42,7 @@ class RenewCertificatesCommand extends Command
         ]);
 
         foreach ($toRenew as $certificate) {
-            $this->info("Renewing certificate for {$certificate['wildcard_domain']}");
+            $this->info("Renewing certificate for {$certificate['domain']}");
 
             $solver = app(SolverFactory::class)->getSolver(
                 $certificate['solver'],
@@ -53,7 +53,6 @@ class RenewCertificatesCommand extends Command
                 $store,
                 $certificate['user'],
                 $certificate['domain'],
-                $certificate['wildcard_domain'],
                 $solver,
                 $certificate['solver_config']
             );

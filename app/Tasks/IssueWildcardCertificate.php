@@ -19,23 +19,14 @@ trait IssueWildcardCertificate
         Store $store,
         string $user,
         string $domain,
-        string $wildcardDomain,
         SolverInterface $solver,
         array $solverConfig
     ): void {
-        $this->task('Ensure wildcard alias is configured', function () use ($user, $domain, $wildcardDomain) {
-            $domainInfo = json_decode(shell_exec("v-list-web-domain $user $domain json"));
-
-            if (!str_contains($domainInfo->$domain->ALIAS, $wildcardDomain)) {
-                shell_exec("v-add-web-domain-alias $user $domain $wildcardDomain");
-            }
-            return true;
-        });
-
-        $this->task('Ensure ssl user exists', function () use ($user) {
-            shell_exec("v-add-letsencrypt-user $user");
-            return true;
-        });
+        $domainInfo = json_decode(shell_exec("v-list-web-domain $user $domain json"));
+        $domains = [$domain];
+        if (!empty($domainInfo->$domain->ALIAS)) {
+            $domains = array_merge($domains, explode(',', $domainInfo->$domain->ALIAS));
+        }
 
         $privateKey = file_get_contents(config('hestia.users_path') . "/$user/ssl/user.key");
         $acmeClient = app(AcmeClient::class, [$privateKey]);
@@ -44,53 +35,59 @@ trait IssueWildcardCertificate
             $acmeClient->registerAccount("info@$domain");
         }
 
-        $challenges = [];
-        $this->task('Requesting authorization', function () use ($wildcardDomain, $acmeClient, &$challenges) {
-            $challenges = $acmeClient->requestAuthorization($wildcardDomain);
+        $order = null;
+        $this->task('Requesting order', function () use ($domains, $acmeClient, &$order) {
+            $order = $acmeClient->requestOrder($domains);
             return true;
         });
 
-        $solvedChallenge = null;
-        $this->task('Solving challenge', function () use ($solver, $challenges, $wildcardDomain, &$solvedChallenge) {
-            foreach ($challenges as $challenge) {
+        $solvedChallenges = [];
+        $this->task('Solving challenges', function () use ($solver, $order, &$solvedChallenges) {
+            foreach ($order->getAuthorizationsChallenges() as $challenge) {
                 if ($solver->supports($challenge)) {
-                    $solvedChallenge = $challenge;
                     $solver->solve($challenge);
-                    return true;
+                    $solvedChallenges[] = $challenge;
                 }
             }
-            return false;
+            return !empty($solvedChallenges);
         });
 
-        $this->task('Validating solved challenge', function () use ($solvedChallenge, $solver, $challenges) {
-            if ($solvedChallenge === null) {
+        $this->task('Validating solved challenges', function () use ($solvedChallenges, $solver) {
+            if (empty($solvedChallenges)) {
                 return false;
             }
 
             $validator = new WaitingValidator(new DnsValidator(dnsResolver: new DohDnsResolver()), 60);
-            if (!$validator->isValid($solvedChallenge, $solver)) {
-                $this->warn('Unable to locally validate challenge, testing with LE servers...');
+
+            foreach ($solvedChallenges as $solvedChallenge) {
+                if (!$validator->isValid($solvedChallenge, $solver)) {
+                    $this->warn('Unable to locally validate challenge, will see with LE servers...');
+                }
             }
 
             return true;
         });
 
-        $this->task('Challenge authorization', function () use ($acmeClient, $solvedChallenge) {
-            if ($solvedChallenge === null) {
+        $this->task('Challenge authorization', function () use ($acmeClient, $solvedChallenges) {
+            if (empty($solvedChallenges)) {
                 return false;
             }
-            $acmeClient->challengeAuthorization($solvedChallenge);
+
+            foreach ($solvedChallenges as $solvedChallenge) {
+                $acmeClient->challengeAuthorization($solvedChallenge);
+            }
+
             return true;
         });
 
         $certificate = null;
-        $this->task('Requesting certificate', function () use ($user, $acmeClient, $wildcardDomain, &$certificate) {
+        $this->task('Requesting certificate', function () use ($user, $acmeClient, $domain, $order, &$certificate) {
             $leUserInfo = json_decode(shell_exec("v-list-letsencrypt-user $user json"), true);
             $mail = $leUserInfo[$user]['EMAIL'];
 
             $keyPair = (new KeyPairGenerator())->generateKeyPair();
             $dname = new DistinguishedName(
-                $wildcardDomain,
+                $domain,
                 'US',
                 'California',
                 'San Francisco',
@@ -101,7 +98,7 @@ trait IssueWildcardCertificate
 
             $csr = new CertificateRequest($dname, $keyPair);
 
-            $certificate = $acmeClient->requestCertificate($wildcardDomain, $csr);
+            $certificate = $acmeClient->finalizeOrder($order, $csr);
             return true;
         });
 
@@ -135,7 +132,7 @@ trait IssueWildcardCertificate
         });
 
         $this->task('Store certificate in database',
-            function () use ($solverConfig, $store, $user, $wildcardDomain, $domain, $certificate, $solver) {
+            function () use ($solverConfig, $store, $user, $domain, $certificate, $solver) {
                 if ($certificate === null) {
                     return false;
                 }
@@ -151,30 +148,38 @@ trait IssueWildcardCertificate
                 $storedRecord = $store->findOneBy([
                     ['user', '=', $user],
                     ['domain', '=', $domain],
-                    ['wildcard_domain', '=', $wildcardDomain]
                 ]);
-                if ($storedRecord !== null) {
-                    $store->deleteById($storedRecord['_id']);
-                }
 
-                $store->insert([
-                    'user' => $user,
-                    'domain' => $domain,
-                    'wildcard_domain' => $wildcardDomain,
-                    'expires_at' => $validToTimestamp,
-                    'solver' => $solver::class,
-                    'solver_config' => $solverConfig,
-                ]);
+                if ($storedRecord !== null) {
+                    $store->updateById($storedRecord['_id'], [
+                        'user' => $user,
+                        'domain' => $domain,
+                        'expires_at' => $validToTimestamp,
+                        'solver' => $solver::class,
+                        'solver_config' => $solverConfig,
+                    ]);
+                } else {
+                    $store->insert([
+                        'user' => $user,
+                        'domain' => $domain,
+                        'expires_at' => $validToTimestamp,
+                        'solver' => $solver::class,
+                        'solver_config' => $solverConfig,
+                    ]);
+                }
 
                 return true;
             });
 
-        $this->task('Cleanup', function () use ($tempCertsDir, $solver, $solvedChallenge) {
-            if ($solvedChallenge === null || $tempCertsDir === null) {
+        $this->task('Cleanup', function () use ($tempCertsDir, $solver, $solvedChallenges) {
+            if ($tempCertsDir === null) {
                 return false;
             }
-            // clear challenge
-            $solver->cleanup($solvedChallenge);
+
+            // clear challenges
+            foreach ($solvedChallenges as $solvedChallenge) {
+                $solver->cleanup($solvedChallenge);
+            }
 
             // clear temp files
             array_map('unlink', glob("$tempCertsDir/*"));

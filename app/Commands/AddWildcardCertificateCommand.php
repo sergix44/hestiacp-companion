@@ -50,7 +50,21 @@ class AddWildcardCertificateCommand extends Command
 
         $solver = app(SolverFactory::class)->getSolver($solverName, $solverConfig);
 
-        $this->issueWildcardCertificate($store, $user, $domain, $wildcardDomain, $solver, $solverConfig);
+        $this->task('Ensure wildcard alias is configured', function () use ($user, $domain, $wildcardDomain) {
+            $domainInfo = json_decode(shell_exec("v-list-web-domain $user $domain json"));
+
+            if (!str_contains($domainInfo->$domain->ALIAS, $wildcardDomain)) {
+                shell_exec("v-add-web-domain-alias $user $domain $wildcardDomain");
+            }
+            return true;
+        });
+
+        $this->task('Ensure lets encrypt user exists', function () use ($user) {
+            shell_exec("v-add-letsencrypt-user $user");
+            return true;
+        });
+
+        $this->issueWildcardCertificate($store, $user, $domain, $solver, $solverConfig);
 
         return 0;
     }
