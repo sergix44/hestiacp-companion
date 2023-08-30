@@ -45,10 +45,15 @@ trait IssueWildcardCertificate
 
         $solvedChallenges = [];
         $this->task('Solving challenges', function () use ($solver, $order, &$solvedChallenges) {
-            foreach ($order->getAuthorizationsChallenges() as $challenge) {
-                if ($solver->supports($challenge)) {
-                    $solver->solve($challenge);
-                    $solvedChallenges[] = $challenge;
+            foreach ($order->getAuthorizationsChallenges() as $d => $challenges) {
+                foreach ($challenges as $challenge) {
+                    if ($challenge->isValid()) {
+                        continue;
+                    }
+                    if ($challenge->isPending() && $solver->supports($challenge)) {
+                        $solver->solve($challenge);
+                        $solvedChallenges[] = $challenge;
+                    }
                 }
             }
             return !empty($solvedChallenges);
@@ -83,19 +88,23 @@ trait IssueWildcardCertificate
         });
 
         $certificate = null;
-        $this->task('Requesting certificate', function () use ($user, $acmeClient, $domain, $order, &$certificate) {
+        $this->task('Requesting certificate', function () use ($user, $acmeClient, $domains, $order, &$certificate) {
+            if ($order === null) {
+                return false;
+            }
             $leUserInfo = json_decode(shell_exec("v-list-letsencrypt-user $user json"), true);
             $mail = $leUserInfo[$user]['EMAIL'];
 
             $keyPair = (new KeyPairGenerator())->generateKeyPair();
             $dname = new DistinguishedName(
-                $domain,
+                array_shift($domains),
                 'US',
                 'California',
                 'San Francisco',
                 'HCPC',
                 'IT',
-                $mail
+                $mail,
+                $domains
             );
 
             $csr = new CertificateRequest($dname, $keyPair);
