@@ -15,7 +15,7 @@ use SleekDB\Store;
 trait IssueWildcardCertificate
 {
 
-    public function issueWildcardCertificate(
+    protected function issueWildcardCertificate(
         Store $store,
         string $user,
         string $domain,
@@ -27,6 +27,8 @@ trait IssueWildcardCertificate
         if (!empty($domainInfo->$domain->ALIAS)) {
             $domains = array_merge($domains, explode(',', $domainInfo->$domain->ALIAS));
         }
+
+        $domains = $this->removeOverlappingDomains($domains);
 
         $privateKey = file_get_contents(config('hestia.users_path') . "/$user/ssl/user.key");
         $acmeClient = app(AcmeClient::class, [$privateKey]);
@@ -187,6 +189,36 @@ trait IssueWildcardCertificate
 
             return true;
         });
+    }
+
+    /**
+     * @param string[] $domains
+     * @return array
+     */
+    private function removeOverlappingDomains(array $domains): array
+    {
+        $uniqueDomains = [];
+        $wildcardDomains = [];
+
+        foreach ($domains as $domain) {
+            if (str_contains($domain, '*')) {
+                $wildcardDomains[] = $domain;
+            } else {
+                $isRedundant = false;
+                foreach ($wildcardDomains as $wildcardDomain) {
+                    $wildcard = str_replace('*', '', $wildcardDomain);
+                    if (str_contains($domain, $wildcard)) {
+                        $isRedundant = true;
+                        break;
+                    }
+                }
+                if (!$isRedundant) {
+                    $uniqueDomains[] = $domain;
+                }
+            }
+        }
+
+        return array_unique(array_merge($uniqueDomains, $wildcardDomains));
     }
 
 }
