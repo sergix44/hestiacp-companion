@@ -197,28 +197,21 @@ trait IssueWildcardCertificate
      */
     private function removeOverlappingDomains(array $domains): array
     {
-        $uniqueDomains = [];
-        $wildcardDomains = [];
+        $wildcardDomains = array_filter($domains, fn($domain) => str_contains($domain, '*.'));
 
-        foreach ($domains as $domain) {
-            if (str_contains($domain, '*')) {
-                $wildcardDomains[] = $domain;
-            } else {
-                $isRedundant = false;
-                foreach ($wildcardDomains as $wildcardDomain) {
-                    $wildcard = str_replace('*', '', $wildcardDomain);
-                    if (str_contains($domain, $wildcard)) {
-                        $isRedundant = true;
-                        break;
-                    }
-                }
-                if (!$isRedundant) {
-                    $uniqueDomains[] = $domain;
+        $domains = array_filter($domains, function ($domain) use ($wildcardDomains) {
+            foreach ($wildcardDomains as $wildcardDomain) {
+                if (
+                    $domain !== $wildcardDomain &&
+                    preg_match("/^" . str_replace('*', '.*', $wildcardDomain) . "$/", $domain)
+                ) {
+                    return false;
                 }
             }
-        }
+            return true;
+        });
 
-        return array_unique(array_merge($uniqueDomains, $wildcardDomains));
+        return array_unique($domains);
     }
 
 }
