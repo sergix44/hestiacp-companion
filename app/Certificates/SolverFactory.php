@@ -37,8 +37,17 @@ class SolverFactory
         return self::SOLVER_PARAMETERS[$solverName] ?? [];
     }
 
+    public static function getNameByClass(string $solverClass): string
+    {
+        return array_search($solverClass, self::SOLVERS);
+    }
+
     public function getSolver(string $solverName, array $config): SolverInterface
     {
+        if (!isset(self::SOLVERS[$solverName])) {
+            $solverName = self::getNameByClass($solverName);
+        }
+
         if (!isset(self::SOLVERS[$solverName])) {
             throw new InvalidArgumentException("Solver $solverName not found");
         }

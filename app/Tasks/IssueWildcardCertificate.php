@@ -10,6 +10,7 @@ use AcmePhp\Ssl\CertificateRequest;
 use AcmePhp\Ssl\DistinguishedName;
 use AcmePhp\Ssl\Generator\KeyPairGenerator;
 use App\Certificates\Resolver\DohDnsResolver;
+use App\Certificates\SolverFactory;
 use SleekDB\Store;
 
 trait IssueWildcardCertificate
@@ -166,7 +167,7 @@ trait IssueWildcardCertificate
                         'user' => $user,
                         'domain' => $domain,
                         'expires_at' => $validToTimestamp,
-                        'solver' => $solver::class,
+                        'solver' => SolverFactory::getNameByClass($solver::class),
                         'solver_config' => $solverConfig,
                     ]);
                 } else {
@@ -174,7 +175,7 @@ trait IssueWildcardCertificate
                         'user' => $user,
                         'domain' => $domain,
                         'expires_at' => $validToTimestamp,
-                        'solver' => $solver::class,
+                        'solver' => SolverFactory::getNameByClass($solver::class),
                         'solver_config' => $solverConfig,
                     ]);
                 }
