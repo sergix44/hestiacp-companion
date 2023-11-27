@@ -37,9 +37,9 @@ class SolverFactory
         return self::SOLVER_PARAMETERS[$solverName] ?? [];
     }
 
-    public static function getNameByClass(string $solverClass): string
+    public static function getNameByClass(string $solverClass): ?string
     {
-        return array_search($solverClass, self::SOLVERS);
+        return array_flip(self::SOLVERS)[$solverClass] ?? null;
     }
 
     public function getSolver(string $solverName, array $config): SolverInterface
