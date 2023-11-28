@@ -8,6 +8,7 @@ use GuzzleHttp\ClientInterface;
 
 class DohDnsResolver implements DnsResolverInterface
 {
+    private ClientInterface|Client $client;
 
     public function __construct(ClientInterface $client = null)
     {
@@ -22,7 +23,7 @@ class DohDnsResolver implements DnsResolverInterface
 
         $json = json_decode($response);
 
-        foreach ($json->Answer as $answer) {
+        foreach ($json?->Answer ?? [] as $answer) {
             if ($answer?->type === 16) {
                 $entries[] = $answer?->data;
             }

@@ -8,6 +8,7 @@ use AcmePhp\Core\Challenge\SolverInterface;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
 
 class CloudflareSolver implements SolverInterface, ConfigurableServiceInterface
 {
@@ -36,26 +37,30 @@ class CloudflareSolver implements SolverInterface, ConfigurableServiceInterface
         $recordName = $this->extractor->getRecordName($authorizationChallenge);
         $recordValue = $this->extractor->getRecordValue($authorizationChallenge);
 
-        $response = $this->client->post(
-            "https://api.cloudflare.com/client/v4/zones/$this->zone/dns_records",
-            [
-                'json' => [
-                    'type' => 'TXT',
-                    'name' => $recordName,
-                    'content' => $recordValue,
-                    'ttl' => 1,
-                    'comment' => 'hcpc_challenge'
-                ],
-                'headers' => [
-                    'Authorization' => "Bearer $this->apiToken",
-                    'Content-Type' => 'application/json',
-                ],
-            ]
-        );
+        try {
+            $response = $this->client->post(
+                "https://api.cloudflare.com/client/v4/zones/$this->zone/dns_records",
+                [
+                    'json' => [
+                        'type' => 'TXT',
+                        'name' => $recordName,
+                        'content' => $recordValue,
+                        'ttl' => 1,
+                        'comment' => 'hcpc_challenge'
+                    ],
+                    'headers' => [
+                        'Authorization' => "Bearer $this->apiToken",
+                        'Content-Type' => 'application/json',
+                    ],
+                ]
+            );
 
-        $json = json_decode($response->getBody()->getContents());
+            $json = json_decode($response->getBody()->getContents());
 
-        $this->ids[] = $json->result->id;
+            $this->ids[] = $json->result->id;
+        } catch (GuzzleException $e) {
+            logger()->info($e->getMessage());
+        }
     }
 
     public function cleanup(AuthorizationChallenge $authorizationChallenge)
