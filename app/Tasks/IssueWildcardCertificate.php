@@ -184,13 +184,11 @@ trait IssueWildcardCertificate
             });
 
         $this->task('Cleanup', function () use ($tempCertsDir, $solver, $solvedChallenges) {
-            if ($tempCertsDir === null) {
-                return false;
+            if ($tempCertsDir !== null) {
+                // clear temp files
+                array_map('unlink', glob("$tempCertsDir/*"));
+                rmdir($tempCertsDir);
             }
-
-            // clear temp files
-            array_map('unlink', glob("$tempCertsDir/*"));
-            rmdir($tempCertsDir);
 
             // clear challenges
             foreach ($solvedChallenges as $solvedChallenge) {
