@@ -188,6 +188,10 @@ trait IssueWildcardCertificate
                 return false;
             }
 
+            // clear temp files
+            array_map('unlink', glob("$tempCertsDir/*"));
+            rmdir($tempCertsDir);
+
             // clear challenges
             foreach ($solvedChallenges as $solvedChallenge) {
                 try {
@@ -196,10 +200,6 @@ trait IssueWildcardCertificate
                     $this->warn("Error while cleaning up: {$e->getMessage()}");
                 }
             }
-
-            // clear temp files
-            array_map('unlink', glob("$tempCertsDir/*"));
-            rmdir($tempCertsDir);
 
             return true;
         });
