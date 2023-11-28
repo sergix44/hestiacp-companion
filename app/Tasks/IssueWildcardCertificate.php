@@ -190,7 +190,11 @@ trait IssueWildcardCertificate
 
             // clear challenges
             foreach ($solvedChallenges as $solvedChallenge) {
-                $solver->cleanup($solvedChallenge);
+                try {
+                    $solver->cleanup($solvedChallenge);
+                } catch (\Throwable $e) {
+                    $this->warn("Error while cleaning up: {$e->getMessage()}");
+                }
             }
 
             // clear temp files
