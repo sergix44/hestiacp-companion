@@ -34,7 +34,7 @@ class RemoveCertificateCommand extends Command
 
         $choices = [];
         foreach ($managedCertificates as $certificate) {
-            $choices[$certificate['_id']] = $certificate['wildcard_domain'] . ' (' . $certificate['domain'] . ')';
+            $choices[$certificate['_id']] = "{$certificate['user']} - {$certificate['domain']}";
         }
 
         if (empty($choices)) {
