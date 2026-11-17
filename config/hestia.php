@@ -2,6 +2,7 @@
 
 return [
     'conf' => '/usr/local/hestia/conf/hestia.conf',
+    'php_path' => '/etc/php',
     'users_path' => '/usr/local/hestia/data/users',
     'templates' => [
         'php-fpm' => '/usr/local/hestia/data/templates/web/php-fpm',

@@ -56,3 +56,49 @@ done
 rclone copyto /etc/subuid remote:containers/system/subuid
 rclone copyto /etc/subgid remote:containers/system/subgid
 ```
+
+### Production PHP settings
+
+Apply production settings to every PHP version installed under `/etc/php`:
+```sh
+sudo php ./hcpc php:optimize
+```
+
+It manages two files in each version's `conf.d` folders. Files there load after `php.ini`, so they override HestiaCP's settings and survive its updates.
+
+| File | Where | Content |
+|------|-------|---------|
+| `98-disabled_function.ini` | CLI always; PHP-FPM if you choose | `disable_functions =`, which re-enables the functions HestiaCP disables (`exec`, `proc_open`, `shell_exec`, …) |
+| `99-prod-optim-php.ini` | CLI and PHP-FPM | the settings below. The CLI copy keeps `memory_limit = -1` and adds `opcache.enable_cli = 1` |
+
+On a fresh HestiaCP server, the CLI itself has those functions disabled, so hcpc cannot test or restart PHP-FPM yet. The first run only writes the CLI `98-disabled_function.ini` files and asks you to run the command again.
+
+The next run shows the settings and lets you change them. It then asks whether to re-enable the functions for websites too: the default is no, and on later runs it is your previous answer. Then it:
+
+1. writes the files, keeping a `.bak-<timestamp>` copy of every file it replaces or removes;
+2. runs `php-fpm<version> -t` for each version whose PHP-FPM files changed, and restores every file if one fails;
+3. restarts those versions' running `php<version>-fpm` services, as listed in the plan it shows you. If a restart fails, it restores every file and restarts the affected services with the previous settings.
+
+Re-enabling functions for websites turns `exec`, `proc_open` and the like back on for every site of every user on the server.
+
+| Setting | Default | Option |
+|---------|---------|--------|
+| `memory_limit` (PHP-FPM only) | `512M` | `--memory-limit` |
+| `realpath_cache_size` | `4096K` | `--realpath-cache-size` |
+| `realpath_cache_ttl` | `120` | `--realpath-cache-ttl` |
+| `opcache.memory_consumption` (MB) | `512` | `--opcache-memory-consumption` |
+| `opcache.interned_strings_buffer` (MB) | `32` | `--opcache-interned-strings-buffer` |
+| `opcache.max_accelerated_files` | `100000` | `--opcache-max-accelerated-files` |
+| `opcache.validate_timestamps` | `1` | `--opcache-validate-timestamps` |
+| `opcache.revalidate_freq` | `2` | `--opcache-revalidate-freq` |
+| `opcache.jit` | `tracing` | `--opcache-jit` |
+| `opcache.jit_buffer_size` | `64M` | `--opcache-jit-buffer-size` |
+
+These settings are always the same: `display_errors = Off`, `log_errors = On`, `expose_php = Off`, `opcache.enable = 1` and `opcache.save_comments = 1` (Laravel reads attributes from comments). The values you choose are kept: the next run starts from the current `99-prod-optim-php.ini`.
+
+Without prompts (`-n`), pass the values as options. Pass `--fpm-functions=yes|no` to change the website answer; without it, the current state is kept. Pass `--apply` to make the changes; without it, the command only shows what it would change:
+```sh
+sudo php ./hcpc php:optimize -n --opcache-memory-consumption=256 --fpm-functions=no --apply
+```
+
+The command warns about other `conf.d` files that set `disable_functions`, such as an older `99-laravel-production.ini`, because they can override its choice. Remove them if you no longer need them.
