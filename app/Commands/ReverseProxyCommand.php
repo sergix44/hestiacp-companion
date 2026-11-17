@@ -2,66 +2,89 @@
 
 namespace App\Commands;
 
-use Illuminate\Console\Scheduling\Schedule;
+use App\Hestia\WebStack;
 use LaravelZero\Framework\Commands\Command;
+use RuntimeException;
 
 class ReverseProxyCommand extends Command
 {
-    /**
-     * The signature of the command.
-     *
-     * @var string
-     */
-    protected $signature = 'reverse-proxy';
+    protected $signature = 'reverse-proxy
+        {service : Service name, the templates are named proxy-<service>}
+        {port : Local port of the service, proxied as http://127.0.0.1:<port>}
+        {--force : Replace existing templates, keeping a .bak copy of each}';
 
-    /**
-     * The description of the command.
-     *
-     * @var string
-     */
-    protected $description = 'Install templates to create reverse proxy sites';
+    protected $description = 'Create Nginx reverse proxy templates for a local HTTP service';
 
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
-    public function handle()
+    public function handle(): int
     {
-        foreach (
-            [
-                'http_reverse_proxy' => 'http',
-                'https_reverse_proxy' => 'https',
-                'unix_reverse_proxy' => 'unix'
-            ] as $name => $protocol
-        ) {
-            foreach (['tpl', 'stpl'] as $type) {
-                $success = $this->task("Creating reverse proxy template $name.$type", function () use ($name, $type, $protocol) {
-                    return $this->makeTemplate($name, $type, $protocol);
-                });
+        $service = $this->argument('service');
+        $port = $this->argument('port');
 
-                if (!$success) {
-                    $this->error("Reverse proxy template $name.$type could not be created.");
-                    return 1;
-                }
+        if (! preg_match('/^[a-z][a-z0-9_-]{0,47}$/', $service)) {
+            return $this->failWith('Service name must contain lowercase letters, digits, - or _, starting with a letter (max 48 characters).');
+        }
+
+        if (! preg_match('/^\d{1,5}$/', $port) || (int) $port < 1 || (int) $port > 65535) {
+            return $this->failWith('Port must be a number between 1 and 65535.');
+        }
+        $port = (int) $port;
+
+        try {
+            $stack = WebStack::fromConf(config('hestia.conf'));
+        } catch (RuntimeException $e) {
+            return $this->failWith($e->getMessage());
+        }
+
+        $dir = $stack->templateDir(config('hestia.templates.nginx'));
+        if (! is_file("$dir/default.tpl") || ! is_file("$dir/default.stpl")) {
+            return $this->failWith("Expected Hestia Nginx templates not found in $dir");
+        }
+        if (! is_writable($dir)) {
+            return $this->failWith("Cannot write to $dir. Run as root (with sudo).");
+        }
+
+        $template = "proxy-$service";
+        $templates = [
+            "$dir/$template.tpl" => view('nginx.reverse-proxy-tpl', ['port' => $port, 'listen' => $stack->httpListen()])->render(),
+            "$dir/$template.stpl" => view('nginx.reverse-proxy-stpl', ['port' => $port, 'listen' => $stack->httpsListen()])->render(),
+        ];
+
+        $existing = array_filter(array_keys($templates), 'file_exists');
+        if ($existing && ! $this->option('force')) {
+            return $this->failWith("Template '$template' already exists. Use --force to back up and replace it.");
+        }
+
+        $stamp = date_create()->format('Ymd-His-u');
+        foreach ($existing as $path) {
+            if (! copy($path, "$path.bak-$stamp")) {
+                return $this->failWith("Could not back up $path");
+            }
+            $this->components->twoColumnDetail('Backup', "$path.bak-$stamp");
+        }
+
+        foreach ($templates as $path => $contents) {
+            if (file_put_contents($path, $contents) === false || ! chmod($path, 0644)) {
+                return $this->failWith("Could not write $path");
             }
         }
 
-        $this->comment(
-            "To create a reverse proxy site, select the 'reverse_proxy' template in the Hestia control panel," .
-            " then in proxy extensions textarea, delete everything and put the hostname, like '127.0.0.1:9000' " .
-            "or 'localhost:8080'"
-        );
+        $this->newLine();
+        $this->components->twoColumnDetail('Template', $template);
+        $this->components->twoColumnDetail('Mode', $stack->value);
+        $this->components->twoColumnDetail('Backend', "http://127.0.0.1:$port");
+        $this->components->twoColumnDetail('HTTP template', "$dir/$template.tpl");
+        $this->components->twoColumnDetail('HTTPS template', "$dir/$template.stpl");
+        $this->components->twoColumnDetail('Hestia field', $stack->panelField());
 
-        return 0;
+        $this->components->info("Next: create the web domain in HestiaCP, enable SSL / Let's Encrypt, then select \"$template\" in the \"{$stack->panelField()}\" dropdown. After applying, check the config with: sudo nginx -t");
+
+        return self::SUCCESS;
     }
 
-    private function makeTemplate(string $name, string $type, string $protocol): bool
+    private function failWith(string $message): int
     {
-        $data = view('nginx.reverse-proxy-' . $type, [
-            'proxyProtocol' => $protocol
-        ]);
-        $path = config('hestia.templates.nginx-proxy') . "/$name.$type";
-        return file_put_contents($path, $data) !== false;
+        $this->components->error($message);
+
+        return self::FAILURE;
     }
 }

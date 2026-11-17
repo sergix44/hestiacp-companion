@@ -10,9 +10,9 @@ class DohDnsResolver implements DnsResolverInterface
 {
     private ClientInterface|Client $client;
 
-    public function __construct(ClientInterface $client = null)
+    public function __construct(?ClientInterface $client = null)
     {
-        $this->client = $client ?: new Client();
+        $this->client = $client ?: new Client;
     }
 
     public function getTxtEntries($domain): array

@@ -1,38 +1,37 @@
+# Generated HestiaCP reverse proxy template: HTTP
+# Backend: http://127.0.0.1:{{ $port }}
 server {
-    listen      %ip%:%proxy_port%;
-    listen      [::]:%proxy_port%;
+    listen %ip%:{{ $listen }};
     server_name %domain_idn% %alias_idn%;
+    root %docroot%;
 
+    access_log /var/log/%web_system%/domains/%domain%.log combined;
+    access_log /var/log/%web_system%/domains/%domain%.bytes bytes;
+    error_log /var/log/%web_system%/domains/%domain%.error.log error;
+
+    # Hestia's HTTP-to-HTTPS redirect when Force SSL is enabled.
     include %home%/%user%/conf/web/%domain%/nginx.forcessl.conf*;
 
+    # Deny dotfiles, but allow ACME /.well-known/ paths.
+    location ~ /\.(?!well-known/) { return 404; }
+
     location / {
-        proxy_set_header        Host $host:$server_port;
-        proxy_set_header        X-Real-IP $remote_addr;
-        proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header        Scheme $scheme;
-        proxy_set_header        X-Forwarded-Proto $scheme;
-        proxy_set_header        Upgrade $http_upgrade;
-        proxy_set_header        Connection "Upgrade";
-        proxy_redirect          http:// https://;
-        proxy_pass              {{ $proxyProtocol }}://%proxy_extensions%;
-        @if($proxyProtocol === 'http')
+        proxy_pass http://127.0.0.1:{{ $port }};
         proxy_http_version 1.1;
-        @endif
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+        client_max_body_size 100m;
     }
 
-    location /error/ {
-        alias   %home%/%user%/web/%domain%/document_errors/;
-    }
-
-    location @fallback {
-        proxy_pass      https://%ip%:%web_ssl_port%;
-    }
-
-    location ~ /\.ht    {return 404;}
-    location ~ /\.svn/  {return 404;}
-    location ~ /\.git/  {return 404;}
-    location ~ /\.hg/   {return 404;}
-    location ~ /\.bzr/  {return 404;}
-
+    # Important: Hestia inserts temporary ACME-challenge locations here.
     include %home%/%user%/conf/web/%domain%/nginx.conf_*;
 }
