@@ -30,6 +30,9 @@
         "mockery/mockery": "^1.5.1",
         "pestphp/pest": "^2.5"
     },
+    "suggest": {
+        "ext-sqlite3": "Required by rclone:sync-path to copy live SQLite databases"
+    },
     "autoload": {
         "psr-4": {
             "App\\": "app/",
