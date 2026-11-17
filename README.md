@@ -102,3 +102,38 @@ sudo php ./hcpc php:optimize -n --opcache-memory-consumption=256 --fpm-functions
 ```
 
 The command warns about other `conf.d` files that set `disable_functions`, such as an older `99-laravel-production.ini`, because they can override its choice. Remove them if you no longer need them.
+
+### Move an account from another HestiaCP server
+
+Copy a whole Hestia user (sites, DNS, mail, databases and cron jobs) from an old server to this one, optionally under a new user name:
+```sh
+sudo php ./hcpc hestia:migrate-user srv1.example.com alice              # checks only
+sudo php ./hcpc hestia:migrate-user srv1.example.com alice --apply
+sudo php ./hcpc hestia:migrate-user srv1.example.com alice alice2 --apply
+```
+
+It backs up the user on the old server with `v-backup-user`, copies the archive with `rsync`, compares its SHA-256 with the original, and restores it here with `v-restore-user`. Hestia gives the restored sites this server's IP and updates their DNS zones.
+
+#### One-time SSH setup
+The command runs as root and connects to `root@<host>` (use `user@host` or an SSH alias to change that, and `--port` for another port). Root on this server needs a key the old server accepts, and the old server's host key:
+```sh
+sudo ssh-keygen -t ed25519                     # only if root has no key yet
+sudo cat /root/.ssh/id_ed25519.pub             # add this to /root/.ssh/authorized_keys on the old server
+sudo ssh root@srv1.example.com true            # accept the old server's host key
+```
+To use another key, pass `--identity=/path/to/key`, and accept the host key with `sudo ssh -i /path/to/key root@srv1.example.com true`.
+
+#### Checks before anything changes
+- The user exists on the old server, and not here (neither as a Hestia nor as a Linux user).
+- `rsync` is installed on both servers, and there is room here for the archive twice (the copy and its unpacked contents) plus the restored files. The home folder is checked on its own when it is on another disk.
+- None of the user's domains, aliases, DNS zones or mail domains belong to another user here. Otherwise Hestia would stop the restore half-way.
+- PHP versions the sites use but this server lacks are reported: Hestia would switch those sites to the `default` template.
+- If a new backup would make the old server delete the user's oldest backup, you are warned and offered the newest existing one.
+
+Without `--apply`, the command only runs these checks. Interactive runs ask before migrating.
+
+#### Reusing or resuming
+`--archive=<name>` uses a backup that is already on the old server, for example last night's, instead of making a new one. An interrupted transfer is kept as `<archive>.partial` in this server's backup folder; run the command again with the same `--archive` to resume it.
+
+#### What it does not do
+It does not change DNS or delete anything: the archive stays on both servers. At the end it compares the number of web domains, DNS zones, mail domains and databases on both servers, and lists what to check before you switch over.

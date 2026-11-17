@@ -1,7 +1,9 @@
 <?php
 
 return [
+    'bin' => '/usr/local/hestia/bin',
     'conf' => '/usr/local/hestia/conf/hestia.conf',
+    'home_path' => '/home',
     'php_path' => '/etc/php',
     'users_path' => '/usr/local/hestia/data/users',
     'templates' => [

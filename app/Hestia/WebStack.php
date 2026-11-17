@@ -11,30 +11,19 @@ enum WebStack: string
 
     public static function fromConf(string $path): self
     {
-        if (! is_readable($path)) {
+        $conf = new HestiaConf($path);
+        if (! $conf->exists()) {
             throw new RuntimeException("Cannot read $path. Is HestiaCP installed?");
         }
 
-        $web = self::setting($path, 'WEB_SYSTEM');
-        $proxy = self::setting($path, 'PROXY_SYSTEM');
+        $web = $conf->get('WEB_SYSTEM');
+        $proxy = $conf->get('PROXY_SYSTEM');
 
         return match (true) {
             $web === 'apache2' && $proxy === 'nginx' => self::NGINX_APACHE,
             $web === 'nginx' => self::NGINX,
             default => throw new RuntimeException("Unsupported Hestia web configuration: WEB_SYSTEM='$web', PROXY_SYSTEM='$proxy'."),
         };
-    }
-
-    // hestia.conf is a shell file: read it as data instead of sourcing it.
-    private static function setting(string $path, string $key): string
-    {
-        foreach (file($path, FILE_IGNORE_NEW_LINES) as $line) {
-            if (str_starts_with($line, "$key=")) {
-                return str_replace(["'", '"'], '', substr($line, strlen($key) + 1));
-            }
-        }
-
-        return '';
     }
 
     public function templateDir(string $nginxTemplates): string
