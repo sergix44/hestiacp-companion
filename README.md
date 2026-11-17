@@ -5,6 +5,8 @@ A simple app to manage custom templates for HestiaCP.
 ## Installation
 You can download the latest artifact from the project [releases.](https://github.com/SergiX44/hestiacp-companion/releases)
 
+It requires PHP 8.4 or newer on the command line, with the `dom` (`php8.4-xml`) and `openssl` extensions.
+
 ## Usage
 
 To list all the available commands:

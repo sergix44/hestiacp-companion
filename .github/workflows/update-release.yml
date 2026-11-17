@@ -4,18 +4,20 @@ on:
   push:
     branches: [ master ]
 
+permissions:
+  contents: write
 
 jobs:
   draft-release:
     runs-on: ubuntu-latest
     name: Draft release and build artifact
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.4'
           coverage: none
 
       - name: Validate composer.json and composer.lock
@@ -23,12 +25,12 @@ jobs:
 
       - name: Cache Composer packages
         id: composer-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v6
         with:
           path: vendor
-          key: ${{ runner.os }}-php-8.1-${{ hashFiles('**/composer.json') }}
+          key: ${{ runner.os }}-php-8.4-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.1
+            ${{ runner.os }}-php-8.4
 
       - name: Install dependencies
         if: steps.composer-cache.outputs.cache-hit != 'true'
@@ -36,15 +38,13 @@ jobs:
 
       - name: Draft Release
         id: draft_release
-        uses: release-drafter/release-drafter@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: release-drafter/release-drafter@v7
 
       - name: Build artifact
         run: php hcpc app:build -n --build-version=${{ steps.draft_release.outputs.tag_name }}
 
       - name: Remove old artifact
-        uses: flcdrg/remove-release-asset-action@v1
+        uses: flcdrg/remove-release-asset-action@v5
         id: remove-asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
           asset_name: hcpc
 
       - name: Upload artifact to release
-        uses: nanoufo/action-upload-artifacts-and-release-assets@v1.8
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2.0
         with:
           path: builds/hcpc
           upload-release-files: true

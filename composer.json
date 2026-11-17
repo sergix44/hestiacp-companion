@@ -16,19 +16,19 @@
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^8.4",
         "acmephp/core": "^2.1",
-        "illuminate/view": "^10.0",
-        "laravel-zero/framework": "^10.0.2",
-        "laravel-zero/phar-updater": "^1.3",
-        "nunomaduro/termwind": "^1.15.1",
-        "rakibtg/sleekdb": "^2.15",
+        "illuminate/view": "^13.0",
+        "laravel-zero/framework": "^13.0",
+        "laravel-zero/phar-updater": "^1.4.2",
+        "rakibtg/sleekdb": "^2.50",
         "ext-openssl": "*"
     },
     "require-dev": {
-        "laravel/pint": "^1.8",
-        "mockery/mockery": "^1.5.1",
-        "pestphp/pest": "^2.5"
+        "ext-sqlite3": "*",
+        "laravel/pint": "^1.32",
+        "mockery/mockery": "^1.6.15",
+        "pestphp/pest": "^5.3"
     },
     "suggest": {
         "ext-sqlite3": "Required by rclone:sync-path to copy live SQLite databases"
@@ -49,6 +49,9 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "optimize-autoloader": true,
+        "platform": {
+            "php": "8.4.1"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }

@@ -10,9 +10,10 @@ use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 
-class CloudflareSolver implements SolverInterface, ConfigurableServiceInterface
+class CloudflareSolver implements ConfigurableServiceInterface, SolverInterface
 {
     private string $apiToken;
+
     private string $zone;
 
     private array $ids = [];
@@ -21,10 +22,10 @@ class CloudflareSolver implements SolverInterface, ConfigurableServiceInterface
 
     private ClientInterface $client;
 
-    public function __construct(DnsDataExtractor $extractor = null, ClientInterface $client = null)
+    public function __construct(?DnsDataExtractor $extractor = null, ?ClientInterface $client = null)
     {
-        $this->extractor = $extractor ?: new DnsDataExtractor();
-        $this->client = $client ?: new Client();
+        $this->extractor = $extractor ?: new DnsDataExtractor;
+        $this->client = $client ?: new Client;
     }
 
     public function supports(AuthorizationChallenge $authorizationChallenge): bool
@@ -46,7 +47,7 @@ class CloudflareSolver implements SolverInterface, ConfigurableServiceInterface
                         'name' => $recordName,
                         'content' => $recordValue,
                         'ttl' => 1,
-                        'comment' => 'hcpc_challenge'
+                        'comment' => 'hcpc_challenge',
                     ],
                     'headers' => [
                         'Authorization' => "Bearer $this->apiToken",
